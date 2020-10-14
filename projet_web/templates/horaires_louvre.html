@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Bootstrap Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Popper JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div id="calendar" class="container">
+        <form method="POST">
+            <h1>Horaires Louvre pour Groupe </h1>
+            <p>Choisir une date et nb de jours à chercher </p>
+            <p><label style="width: 100px;">date début</label><input id="selectedDate" name="selectedDate" type="date"></p>
+            <p><label style="width: 100px;">Nb jours</label><input id="selectedNbDays" name="selectedNbDays" type="text"></p>
+            <p><input type="submit" value="chercher"></p>
+        </form>
+    </div>
+    {% if hasSelectedDateAndNb == 1 %}
+        <div id="AllHoraires" class="container-fluid text-center">
+            {% for selectedDate in listDates %}
+                <div class="container-fluid">
+                    <p class="bg-primary text-white">{{selectedDate}}</p>
+                    <div class="container d-flex flex-wrap">
+                        {% for i in range(resultDict_horaires[selectedDate]|length) %}
+                            {% if resultDict_horaires[selectedDate][i]['available'] < 26 %}
+                                <div class="container p-4" style="width:100px;">
+                                    <div>
+                                        <button type="button" class="btn btn-light" disabled>{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
+                                    </div>
+                                    <div>
+                                        <span>{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="container p-4" style="width:100px;">
+                                    <div>
+                                        <button type="button" class="btn btn-success">{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
+                                    </div>
+                                    <div>
+                                        <span class="font-weight-bolder">{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
