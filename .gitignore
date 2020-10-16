@@ -3,3 +3,8 @@ privateNote.txt
 
 #Visual Studio Code - __pycache__:
 *.pyc
+__pycache__/
+
+#others:
+test.py
+test/
