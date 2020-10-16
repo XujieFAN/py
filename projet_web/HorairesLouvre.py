@@ -4,6 +4,7 @@ from flask import request
 #from getHorairesDispo_Louvre import getListDates
 #from getHorairesDispo_Louvre import getHoraires_BilletGroupLouvre
 from getHorairesDispo_Louvre import HorairesLouvre
+import numpy
 
 app = Flask(__name__)
 
