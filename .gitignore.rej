@@ -1,0 +1,9 @@
+diff a/.gitignore b/.gitignore	(rejected hunks)
+@@ -3,5 +3,6 @@
+ 
+ #Visual Studio Code - __pycache__:
+\ No newline at end of file
++*.pyc
+ __pycache__/
+ 
+ #others:
