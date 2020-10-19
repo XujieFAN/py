@@ -28,17 +28,17 @@ def getSelectedHTML(selectedURL, withSelector=0, path_selector=None):
             return str(soup)
 
 
-def html2file(html, file, mode='a+'):
+def html2file(html, file, mode='a+', encoding='utf-8'):
     file = 'test/'+file
     try:
-        with open(file,mode,encoding='utf-8') as f:
+        with open(file,mode,encoding=encoding) as f:
             f.write(html)
         return True
     except:
         return False
 
 
-def getLinks_fromHTML(html, tryGetCompletHrefs=0, url=None):
+def getHrefs_fromHTML(html, tryGetCompletHrefs=0, url=None):
     soup = BeautifulSoup(html,'lxml')
     resultSet = soup.find_all('a')
 
@@ -71,11 +71,34 @@ def try_add_OneLink_to_url(link, url):
     return list_complet
 
 
+def getImageSRCs_fromHTML(html, url):
+    # url should be like https://www.liaoxuefeng.com/xxx
+    host = 'https://' + url.split('/')[2]
+
+    soup = BeautifulSoup(html,'lxml')
+    resultSet = soup.find_all('img')
+
+    SRCs = list()
+
+    for result in resultSet:
+        if result.get('src')[0:4] == 'http':
+            SRCs.append(result.get('src'))
+        else:
+            SRCs.append(host + result.get('src'))
+    
+    return SRCs
+
+
+def getImages_fromSRCs(SRCs):
+    print(SRCs)
+    
+
+
 if __name__ == "__main__":
 
-    html = getSelectedHTML(selectedURL,1,path_selector)
+    #html = getSelectedHTML(selectedURL,1,path_selector)
 
-    links = getLinks_fromHTML(html,1,selectedURL)
+    #links = getHrefs_fromHTML(html,1,selectedURL)
 
     #print(links)
 
@@ -85,8 +108,9 @@ if __name__ == "__main__":
         html2file(getSelectedHTML(page),filename)
     '''
 
-    filename = str(time.time()).replace('.','-')+'.html'
-    html2file(getSelectedHTML(links[1]),filename)
+    html = getSelectedHTML(selectedURL)
+    SRCs = getImageSRCs_fromHTML(html,selectedURL)
+    getImages_fromSRCs(SRCs)
 
-    filename = str(time.time()).replace('.','-')+'.html'
-    html2file(getSelectedHTML(links[2]),filename)
+    for i in SRCs:
+        html2file(getSelectedHTML(i),'img/'+str(i)[0:3])
