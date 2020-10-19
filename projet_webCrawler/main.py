@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import lxml
+import time
 
 
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36'}
@@ -11,22 +12,26 @@ selectedURL = 'https://www.liaoxuefeng.com/wiki/896043488029600'
 path_selector = '#x-sidebar-left-content'
 
 
-def getSelectedHTML(selectedURL, path_selector):
+def getSelectedHTML(selectedURL, withSelector=0, path_selector=None):
     try:
-        web_git_liaoxuefeng = requests.get(selectedURL, headers=headers)
+        html = requests.get(selectedURL, headers=headers)
 
     except ConnectionError:
         print('problem connexion')
 
     else:
-        soup = BeautifulSoup(web_git_liaoxuefeng.text,'lxml')
-        tagFormat_selectedHTML = soup.select_one(path_selector)
-        return str(tagFormat_selectedHTML)
+        soup = BeautifulSoup(html.text,'lxml')
+        if withSelector == 1 and path_selector != None:
+            tagFormat_selectedHTML = soup.select_one(path_selector)
+            return str(tagFormat_selectedHTML)
+        else:
+            return str(soup)
 
 
 def html2file(html, file, mode='a+'):
+    file = 'test/'+file
     try:
-        with open(file,mode) as f:
+        with open(file,mode,encoding='utf-8') as f:
             f.write(html)
         return True
     except:
@@ -68,8 +73,20 @@ def try_add_OneLink_to_url(link, url):
 
 if __name__ == "__main__":
 
-    html = getSelectedHTML(selectedURL,path_selector)
+    html = getSelectedHTML(selectedURL,1,path_selector)
 
     links = getLinks_fromHTML(html,1,selectedURL)
 
-    print(links)
+    #print(links)
+
+    '''
+    for page in links:
+        filename = str(time.time()).replace('.','-')+'.html'
+        html2file(getSelectedHTML(page),filename)
+    '''
+
+    filename = str(time.time()).replace('.','-')+'.html'
+    html2file(getSelectedHTML(links[1]),filename)
+
+    filename = str(time.time()).replace('.','-')+'.html'
+    html2file(getSelectedHTML(links[2]),filename)
