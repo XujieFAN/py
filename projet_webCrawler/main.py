@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import lxml
 import time
+import os
 
 
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36'}
@@ -89,8 +90,38 @@ def getImageSRCs_fromHTML(html, url):
     return SRCs
 
 
+def getContentType_fromHeaders(headers):
+    if headers['content-type'].split('/')[0] == 'image':
+        if '+' not in headers['content-type'].split('/')[1]:
+            content_type = headers['content-type'].split('/')[1]
+        elif 'svg' in headers['content-type'].split('/')[1]:
+            content_type = 'svg'
+        else:
+            content_type = None
+
+    return content_type
+
+
 def getImages_fromSRCs(SRCs):
-    print(SRCs)
+    if not os.path.exists('test/img'):
+        os.mkdir('test/img')
+    
+    imgNames = dict()
+    i = 0
+    for src in SRCs:
+        i = i+1
+        try:
+            img = requests.get(src, headers=headers)
+            img_type = getContentType_fromHeaders(img.headers)
+            img_name = str(int(time.time()))+'_'+str(i)+'.'+img_type
+        except ConnectionError:
+            print('problem connexion for src={}'.format(src))
+        else:
+            html2file(img.content,'img/'+img_name, mode='wb+', encoding=None)
+            imgNames[src] = 'img/'+img_name
+
+    # to change the src with this img name in html
+    return imgNames
     
 
 
@@ -110,7 +141,4 @@ if __name__ == "__main__":
 
     html = getSelectedHTML(selectedURL)
     SRCs = getImageSRCs_fromHTML(html,selectedURL)
-    getImages_fromSRCs(SRCs)
-
-    for i in SRCs:
-        html2file(getSelectedHTML(i),'img/'+str(i)[0:3])
+    print(getImages_fromSRCs(SRCs))
