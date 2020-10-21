@@ -24,11 +24,11 @@ def getSelectedHTML(selectedURL, withSelector=0, path_selector=None):
         soup = BeautifulSoup(html.text,'lxml')
         if withSelector == 1 and path_selector != None:
             tagFormat_selectedHTML = soup.select_one(path_selector)
-            return str(tagFormat_selectedHTML)
+            return tagFormat_selectedHTML
         else:
-            return str(soup)
+            return soup
 
-
+#call html2file(str(html),...)
 def html2file(html, file, mode='a+', encoding='utf-8'):
     file = 'test/'+file
     try:
@@ -40,8 +40,9 @@ def html2file(html, file, mode='a+', encoding='utf-8'):
 
 
 def getHrefs_fromHTML(html, tryGetCompletHrefs=0, url=None):
-    soup = BeautifulSoup(html,'lxml')
-    resultSet = soup.find_all('a')
+    #soup = BeautifulSoup(html,'lxml')
+    #resultSet = soup.find_all('a')
+    resultSet = html.find_all('a')
 
     links = list()
 
@@ -76,18 +77,27 @@ def getImageSRCs_fromHTML(html, url):
     # url should be like https://www.liaoxuefeng.com/xxx
     host = 'https://' + url.split('/')[2]
 
-    soup = BeautifulSoup(html,'lxml')
-    resultSet = soup.find_all('img')
 
-    SRCs = list()
+    #soup = BeautifulSoup(html,'lxml')
+    #resultSet = soup.find_all('img')
+    resultSet = html.find_all('img')
+
+    #SRCs = list()
+    #SRCs_origin = list()
+
+    SRCs_dict = dict()
 
     for result in resultSet:
+        #SRCs_origin.append(result['src'])
         if result.get('src')[0:4] == 'http':
-            SRCs.append(result.get('src'))
+            SRCs_dict[result.get('src')] = result.get('src')
+            #SRCs.append(result.get('src'))
         else:
-            SRCs.append(host + result.get('src'))
+            SRCs_dict[result.get('src')] = host + result.get('src')
+            #SRCs.append(host + result.get('src'))
     
-    return SRCs
+    return SRCs_dict
+    #SRCs, SRCs_origin
 
 
 def getContentType_fromHeaders(headers):
@@ -101,12 +111,12 @@ def getContentType_fromHeaders(headers):
 
     return content_type
 
-
+#if SRCs is dict, call getImages_fromSRCs(SRCs.values())
 def getImages_fromSRCs(SRCs):
     if not os.path.exists('test/img'):
         os.mkdir('test/img')
     
-    imgNames = dict()
+    imgLocalNames = dict()
     i = 0
     for src in SRCs:
         i = i+1
@@ -118,27 +128,28 @@ def getImages_fromSRCs(SRCs):
             print('problem connexion for src={}'.format(src))
         else:
             html2file(img.content,'img/'+img_name, mode='wb+', encoding=None)
-            imgNames[src] = 'img/'+img_name
+            imgLocalNames[src] = 'img/'+img_name
 
     # to change the src with this img name in html
-    return imgNames
+    return imgLocalNames
     
+
+
+def test_Get_Html_and_ChgSrcOfImages():
+    html = getSelectedHTML(selectedURL)
+    SRCs_dict = getImageSRCs_fromHTML(html,selectedURL)
+    imgLocalNames = getImages_fromSRCs(SRCs_dict.values())
+
+    [tag.extract() for tag in html.select('head link')]
+    [tag.extract() for tag in html.select('head script')]
+
+    for imgSrc in html.find_all('img'):
+        print(imgLocalNames[SRCs_dict[imgSrc['src']]])
+        imgSrc['src'] = imgLocalNames[SRCs_dict[imgSrc['src']]]
+
+    html2file(str(html),'test.html')
 
 
 if __name__ == "__main__":
 
-    #html = getSelectedHTML(selectedURL,1,path_selector)
-
-    #links = getHrefs_fromHTML(html,1,selectedURL)
-
-    #print(links)
-
-    '''
-    for page in links:
-        filename = str(time.time()).replace('.','-')+'.html'
-        html2file(getSelectedHTML(page),filename)
-    '''
-
-    html = getSelectedHTML(selectedURL)
-    SRCs = getImageSRCs_fromHTML(html,selectedURL)
-    print(getImages_fromSRCs(SRCs))
+    test_Get_Html_and_ChgSrcOfImages()
