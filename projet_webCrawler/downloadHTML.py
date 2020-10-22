@@ -11,16 +11,21 @@ class DownloadHTML(object):
         self.path_selector = path_selector
         self.savePath = path
         self.savedHtmlName = name
+        self.encoding = 'utf8'
+
+    def setRequestEncoding(self, encoding):
+        self.encoding = encoding
 
     def getSelectedHTML(self):
         try:
-            html = requests.get(self.url, headers=self.headers)
+            res = requests.get(self.url, headers=self.headers)
+            html = res.text.encode(self.encoding)
 
         except ConnectionError:
             print('problem connexion')
 
         else:
-            soup = BeautifulSoup(html.text,'lxml')
+            soup = BeautifulSoup(html,'lxml')
             if self.path_selector != None:
                 tagFormat_selectedHTML = soup.select_one(self.path_selector)
                 return tagFormat_selectedHTML
@@ -138,7 +143,11 @@ class DownloadHTML(object):
 if __name__ == "__main__":
     url = 'https://www.liaoxuefeng.com/wiki/896043488029600'
     headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36'}
-    #F12 --> Copy --> Copy selector
-    #path_selector = '#x-sidebar-left-content'
-    page1 = DownloadHTML(url, headers, 'test/', 'test1.html')
-    page1.downloadHtml()
+    
+    # path_selector optional
+    page = DownloadHTML(url, headers, 'test/', 'test.html')
+    
+    #page.setRequestEncoding('ISO-8859-1') #for Chinese
+
+    # selectorToExtract optional
+    page.downloadHtml()
