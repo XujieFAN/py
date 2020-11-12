@@ -4,7 +4,6 @@ from flask import request
 #from getHorairesDispo_Louvre import getListDates
 #from getHorairesDispo_Louvre import getHoraires_BilletGroupLouvre
 from getHorairesDispo_Louvre import HorairesLouvre
-import numpy
 
 app = Flask(__name__)
 
@@ -22,18 +21,22 @@ def getHorairesLouvre():
     template_HTML = 'horaires_louvre.html'
     #template_HTML = '/home/xfan/mysite/horaires_louvre.html'
 
-    date = '2020-10-17'
-    nb_days = 1
-
     if request.method == 'POST':
-        date = request.form['selectedDate']
-        nb_days = int(request.form['selectedNbDays'])
+        h = HorairesLouvre()
 
-        listDates = HorairesLouvre.getListDates(date,nb_days)
+        if len(request.form['selectedDate']) != 0:
+            date = request.form['selectedDate']
+        else:date = h.fistDayPossible()
+
+        if len(request.form['selectedNbDays']) != 0:
+            nb_days = int(request.form['selectedNbDays'])
+        else:nb_days = 1
+
+        listDates = h.getListDates(date,nb_days)
         resultDict_horaires = dict()
 
         for date in listDates:
-            resultDict_horaires[date] = HorairesLouvre.getHoraires_BilletGroupLouvre(date)
+            resultDict_horaires[date] = h.getHoraires_BilletGroupLouvre(date)
 
         return render_template(template_HTML, hasSelectedDateAndNb=1, listDates=listDates, resultDict_horaires=resultDict_horaires)
     else:
