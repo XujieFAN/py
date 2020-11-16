@@ -3,12 +3,8 @@ privateNote.txt
 
 #Visual Studio Code - __pycache__:
 *.pyc
-<<<<<<< .merge_file_a14792
-__pycache__/
-=======
 __pycache__/
 
 #others:
 test.py
 test/
->>>>>>> .merge_file_a07880

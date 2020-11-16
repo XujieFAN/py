@@ -29,27 +29,34 @@
                 <div class="container-fluid">
                     <p class="bg-primary text-white">{{selectedDate}}</p>
                     <div class="container d-flex flex-wrap">
-                        {% for i in range(resultDict_horaires[selectedDate]|length) %}
-                            {% if resultDict_horaires[selectedDate][i]['available'] < 26 %}
-                                <div class="container p-4" style="width:100px;">
-                                    <div>
-                                        <button type="button" class="btn btn-light" disabled>{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
-                                    </div>
-                                    <div>
-                                        <span>{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="container p-4" style="width:100px;">
-                                    <div>
-                                        <button type="button" class="btn btn-success">{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
-                                    </div>
-                                    <div>
-                                        <span class="font-weight-bolder">{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
+						{% if resultDict_horaires[selectedDate] == 'Error' %}
+							<div class="container p-4">
+								<h2>Error to get data for this date</h2>
+								<h2>To check : There is no more ticket for this date or Louvre is closed ?</h2>
+							</div>
+						{% else %}
+							{% for i in range(resultDict_horaires[selectedDate]|length) %}
+								{% if resultDict_horaires[selectedDate][i]['available'] < 26 %}
+									<div class="container p-4" style="width:100px;">
+										<div>
+											<button type="button" class="btn btn-light" disabled>{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
+										</div>
+										<div>
+											<span>{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
+										</div>
+									</div>
+								{% else %}
+									<div class="container p-4" style="width:100px;">
+										<div>
+											<button type="button" class="btn btn-success">{{ resultDict_horaires[selectedDate][i]['perfTime'] }} </button>
+										</div>
+										<div>
+											<span class="font-weight-bolder">{{ resultDict_horaires[selectedDate][i]['available'] }}</span><span>/{{ resultDict_horaires[selectedDate][i]['total'] }}</span>
+										</div>
+									</div>
+								{% endif %}
+							{% endfor %}
+						{% endif %}
                     </div>
                 </div>
             {% endfor %}
