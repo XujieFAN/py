@@ -3,6 +3,12 @@ import game_functions as gf
 import json
 import os
 from settings import Map_Elements
+try:
+    import numpy as N
+    import pygame.surfarray as surfarray
+    import pygame.examples.arraydemo as demo
+except ImportError:
+    raise ImportError
 
 
 
@@ -79,6 +85,8 @@ def save_map(name,list,size=(800,600),rgb=(255,255,255)):
     map = pygame.Surface(size).convert()
     map.fill(rgb)
 
+    set_grid(map,size)
+
     try:
         for element in list:
             spr = mapElement(element[0],(element[1][0],element[1][1]))
@@ -99,6 +107,16 @@ def save_map(name,list,size=(800,600),rgb=(255,255,255)):
 
 
 
+def set_grid(surface,surfSize=(1,1),interval=50):
+    ss = (surfSize[0], surfSize[1], 3)
+    striped = N.zeros(ss)
+    striped[:] = (255, 255, 255)
+    striped[::interval,:] = (220, 220, 220)
+    striped[:,::interval] = (220, 220, 220)
+    surfarray.blit_array(surface, striped)
+
+
+
 def show_format():
     List_format = 'The List format for map elements is:\n[\n\t[ "obj_name", [x, y] ],\n]'
     print(List_format)
@@ -106,7 +124,8 @@ def show_format():
 
 
 if __name__ == "__main__":
-    pygame.init()
+    #pygame.init()
+    
     screen = pygame.display.set_mode((800,600), pygame.RESIZABLE)
     list = [
         ["lawn",[0,0]],
@@ -115,12 +134,23 @@ if __name__ == "__main__":
         ["mountain",[300,100]],
         ["mountain",[400,100]]
     ]
-    save_map('map_2.png',list)
-    screen, map = load_map_to_screen('map_2.png')
+    save_map('map_3.png',list,rgb=(0,0,0))
+    screen, map = load_map_to_screen('map_3.png')
     screen.blit(map,(0,0))
     show_format()
     
     while True:
-        gf.check_event()
+        gf.check_event(screen)
         screen.blit(map,(0,0))
         pygame.display.flip()
+    '''
+    size=(800,600,3)
+    striped = N.zeros(size)
+    striped[:] = (255, 255, 255)
+    #striped[:,::3] = (0, 255, 255)
+    striped[::50,:] = (220, 220, 220)
+    striped[:,::50] = (220, 220, 220)
+    print(striped.shape)
+    demo.surfdemo_show(striped, 'striped')
+    '''
+    

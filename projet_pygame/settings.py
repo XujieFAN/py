@@ -25,3 +25,8 @@ class Profils():
 class Map_Elements():
     LAWN = 'lawn'
     MOUNTAIN = 'mountain'
+
+
+
+class Game_Attr(Enum):
+    INTERVAL = 50
