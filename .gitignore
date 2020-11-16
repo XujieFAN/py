@@ -12,3 +12,4 @@ __pycache__/
 test.py
 test/
 >>>>>>> .merge_file_a07880
+.gitignore.rej

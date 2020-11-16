@@ -20,6 +20,8 @@ class Profils():
     ENEMY_1 = {'OrderID':51, 'Move_distance_default':3, 'Attack_distance_default':1, 'image_name':'ENEMY_1.png'}
     ENEMY_2 = {'OrderID':52, 'Move_distance_default':3, 'Attack_distance_default':2, 'image_name':'ENEMY_2.png'}
 
+    List = [WIZARD,WARRIOR,KNIGHT,ARCHER,ARTILLERY,ENEMY_1,ENEMY_2]
+
 
 
 class Map_Elements():

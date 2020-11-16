@@ -134,8 +134,8 @@ if __name__ == "__main__":
         ["mountain",[300,100]],
         ["mountain",[400,100]]
     ]
-    save_map('map_3.png',list,rgb=(0,0,0))
-    screen, map = load_map_to_screen('map_3.png')
+    save_map('map_2.png',list,rgb=(0,0,0))
+    screen, map = load_map_to_screen('map_2.png')
     screen.blit(map,(0,0))
     show_format()
     
