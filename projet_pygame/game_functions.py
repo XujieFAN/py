@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import datetime
 import settings as st
 import json
 import game_objects as gobj
@@ -13,50 +14,151 @@ def check_event(screen, Everything):
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit(0)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            mouse_click(screen, Everything)
-        elif event.type == pygame.KEYUP:
-            if pygame.key.key_code("r") == pygame.K_r:
-                for player in Everything.Group_Players.sprites():
-                    player.selected = 0
-                    player.moved = 0
-                    player.finished = 0
-
-
-
-def mouse_click(screen, Group_Everything):
-    pos = pygame.mouse.get_pos()
-    for player in Group_Everything.Group_Players.sprites():
-        print('selected:%d,  moved:%d, finished:%d' %(player.selected, player.moved, player.finished))
-        if player.rect.collidepoint(pos) and player.finished == 0 and player.selected == 0:
-            if player.finished == 0:
-                player.set_pos(pos)
-                show_area(Group_Everything, player, screen)
-                player.selected = 1
+        if Everything.AI_moving == 0:
+            if event.type == pygame.MOUSEBUTTONUP:
+                mouse_click(event.button, screen, Everything)
                 return
-        elif player.rect.collidepoint(pos) and player.selected == 1: 
-            return
-        elif player.selected == 1 and not player.rect.collidepoint(pos) and is_inArea(player, pos, 'move_area') and not is_inArea(player, pos, 'attack_area'):
-            unshow_area(Group_Everything)
-            player.move(pos)
-            show_area(Group_Everything, player, screen)
-            return
-        elif player.selected == 1 and not player.rect.collidepoint(pos) and is_inArea(player, pos, 'attack_area'):
-            player.attack(pos)
-            player.selected = 0
-            unshow_area(Group_Everything)
-            return
+            if event.type == pygame.KEYUP:
+                if pygame.key.key_code("r") == pygame.K_r:
+                    for player in Everything.Group_Players.sprites():
+                        player.selected = 0
+                        player.moved = 0
+                        player.finished = 0
+                return
         else:
-            #player.selected = 0
-            unshow_area(Group_Everything)
-            #player.finished = 0
-            return
+            do_AI_moving()
+
+
+
+def mouse_click(button, screen, Group_Everything):
+    pos = pygame.mouse.get_pos()
+
+    #click left
+    if button == 1:
+        if Group_Everything.someone_selected == False:
+            for player in Group_Everything.Group_Players.sprites():
+                #   juste show area
+                if player.rect.collidepoint(pos) and player.finished == 0:
+                    show_area(Group_Everything, player, screen)
+                    player.selected = 1
+                    Group_Everything.set_someone_selected(True, player)
+                    return
+
+        if Group_Everything.someone_selected == True:
+            player = Group_Everything.selected_one
+            #   move !
+            if player.moved == 0 and not player.rect.collidepoint(pos) and is_inArea(player, pos, player.move_distance) and not is_inArea(player, pos, player.attack_distance):
+                obj_detected, obj_type = detectObj(Group_Everything, pos)
+                if obj_type == 0:   #nothing collided
+                    player.move(pos)
+                    show_area(Group_Everything, player, screen)
+                if obj_type == 1:    #detect a player
+                    changeFocusedPlayer(Group_Everything, player, obj_detected)
+                    show_area(Group_Everything, obj_detected, screen)
+                return
+
+            #   attack or move
+            if not player.rect.collidepoint(pos) and is_inArea(player, pos, player.attack_distance) and is_inArea(player, pos, player.move_distance):
+                obj_detected, obj_type = detectObj(Group_Everything, pos)
+                if obj_type == 1:   #attack !
+                    player.attack(obj_detected)
+                if obj_type == 0 and player.moved == 0:   #move
+                    player.move(pos)
+                    show_area(Group_Everything, player, screen)
+                return
+            
+            #   juste unshow
+            if not player.rect.collidepoint(pos) and not is_inArea(player, pos, player.attack_distance):
+                player.selected = 0
+                Group_Everything.set_someone_selected(False)
+                unshow_area(Group_Everything)
+                return
+
+    #click right
+    if button == 3:
+        show_info(screen, Group_Everything, pos)
+        return
+    
+    return
+
+
+
+def changeFocusedPlayer(Group_Everything, thisPlayer, anotherPlayer):
+    Group_Everything.set_someone_selected(False)
+    thisPlayer.selected = 0
+    Group_Everything.set_someone_selected(True, anotherPlayer)
+    anotherPlayer.selected = 1
+    return
+
+
+'''
+detecteObj return 0 if detect nothing
+detecteObj return 1 if detect a player
+detecteObj return 2 if detect a map object
+detecteObj return 3 if detect any other object
+'''
+def detectObj(Group_Everything, pos):
+    if Group_Everything.Group_Players is not None:
+        for another_player in Group_Everything.Group_Players.sprites():
+            if another_player.rect.collidepoint(pos):
+                return another_player, 1
+
+    '''
+    if Group_Everything.Group_map_objs is not None:
+        for map_obj in Group_Everything.Group_map_objs.sprites():
+            if map_obj.rect.collidepoint(pos):
+                return map_obj, 2
+    '''
+    if Group_Everything.Group_for_infoPanel is not None:
+        for SomeObj in Group_Everything.Group_for_infoPanel.sprites():
+            if SomeObj.rect.collidepoint(pos):
+                return SomeObj, 3
+
+    return None, 0
+
+
+
+def show_info(screen, Group_Everything, pos):
+    
+    print('-'*15+datetime.datetime.now().strftime('%Y-%m-%d  %H:%M:%S')+'-'*15)
+    for obj in Group_Everything.sprites():
+        print('|  ', obj, 'at ', obj.rect.topleft)
+    print('-'*50)
+    print('\n')
+
+    unshow_area(Group_Everything)
+
+    for player in Group_Everything.Group_Players.sprites():
+        if player.rect.collidepoint(pos):
+            print('-'*50)
+            print('|  player profil   : %s' %player.profil['name'])
+            print('|  player life     : %s' %player.life_value)
+            print('|  attackable      : %s' %player.attackable)
+            print('|  player selected : %s' %player.selected)
+            print('|  player moved    : %s' %player.moved)
+            print('|  player finished : %s' %player.finished)
+            print('-'*50)
+            
+            Group_for_infoPanel = pygame.sprite.Group()
+
+            bg_infoPanel = gobj.InfoPanelUnit(Group_Everything,'bg_Panel', (0,0))
+            Group_for_infoPanel.add(bg_infoPanel)
+            Group_Everything.add(bg_infoPanel,layer=10)
+
+            test_button = gobj.InfoPanelUnit(Group_Everything,'test', (25,25))
+            Group_for_infoPanel.add(test_button)
+            Group_Everything.add(test_button,layer=11)
+
+            Group_Everything.Group_for_infoPanel = Group_for_infoPanel
+
 
 
 def show_area(Everything, player, screen):
+    unshow_area(Everything)
     if player.finished == 0:
         show_move_area(Everything, player, screen)
         show_attack_area(Everything, player, screen)
+
 
 
 def show_move_area(Everything, player, screen):
@@ -68,6 +170,8 @@ def show_move_area(Everything, player, screen):
             Group_grid_move_area.add(grid)
             Everything.add(grid)
             Everything.set_Group_Grids(Group_grid_move_area,'move_area')
+        pygame.sprite.groupcollide(Everything.Group_Grids_move_area, Everything.Group_Players, True, False)
+        
 
 
 def show_attack_area(Everything, player, screen):
@@ -84,11 +188,15 @@ def show_attack_area(Everything, player, screen):
         Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
 
 
+
 def unshow_area(Everything):
     if Everything.Group_Grids_move_area != None:
         Everything.remove(Everything.Group_Grids_move_area.sprites())
     if Everything.Group_Grids_attack_area != None:
         Everything.remove(Everything.Group_Grids_attack_area.sprites())
+    if Everything.Group_for_infoPanel != None:
+        Everything.remove(Everything.Group_for_infoPanel.sprites())
+
 
 
 def calculate_area_from_distance(pos, distance, interval=st.Game_Attr.INTERVAL.value):
@@ -114,21 +222,27 @@ def calculate_area_from_distance(pos, distance, interval=st.Game_Attr.INTERVAL.v
     return list_pos, len(list_pos)
 
 
-def is_inArea(player, pos, type):
+
+def changePosToTopLeft(pos):
     interval = st.Game_Attr.INTERVAL.value
+    Pos_x_grid = (pos[0]//interval)*interval
+    Pos_y_grid = (pos[1]//interval)*interval
+    pos = (Pos_x_grid,Pos_y_grid)
+    return pos
+
+
+
+def is_inArea(player, pos, distance):
+    interval = st.Game_Attr.INTERVAL.value
+    pos = changePosToTopLeft(pos)
+
     offset_x = abs(pos[0] - player.pos[0]) // interval
     offset_y = abs(pos[1] - player.pos[1]) // interval
-    if type == 'move_area':
-        if offset_x + offset_y <= player.move_distance:
-            return True
-        else:
-            return False
+    if offset_x + offset_y <= distance:
+        return True
+    else:
+        return False
 
-    if type == 'attack_area':
-        if offset_x + offset_y <= player.attack_distance:
-            return True
-        else:
-            return False
 
 
 def load_bg_sound(name):
@@ -178,7 +292,12 @@ def load_image(name, colorKey=None):
 
     return image, image.get_rect()
 
+
+
+def do_AI_moving():
+    pass
+
+
+
 if __name__ == "__main__":
-    print(-130//50)
-    print(30//50)
-    print(-30//50)
+    pass
