@@ -17,7 +17,7 @@ def loadGameFrom(file):
 def purchase():
     pass
 
-def beginGame(screen):
+def beginGame(screen, map):
     autoSave = os.path.join('saves', 'autosave.txt')
     if os.path.exists(autoSave):
         file = open(autoSave,'r')
@@ -25,7 +25,7 @@ def beginGame(screen):
     else:
         newGame()
 
-    Everything = gobj.Group_Everything()
+    Everything = gobj.Group_Everything(map)
     wizard = gobj.EntityOfPlayer(Everything, st.Profils.WIZARD, screen, (300, 300))
     knight = gobj.EntityOfPlayer(Everything, st.Profils.KNIGHT, screen, (300, 400))
     enemy_1 = gobj.EntityOfComputer(Everything, st.Profils.ENEMY_1, screen, (screen.get_width()-200,50))
@@ -36,6 +36,10 @@ def beginGame(screen):
     Everything.add(enemy_2)
 
     allPlayers = pygame.sprite.Group((wizard,knight,enemy_1,enemy_2))
+    allHumainPlayers = pygame.sprite.Group((wizard,knight))
+    allComputerPlayers = pygame.sprite.Group((enemy_1,enemy_2))
     Everything.set_Group_Players(allPlayers)
+    Everything.set_Group_HumainPlayers(allHumainPlayers)
+    Everything.set_Group_ComputerPlayers(allComputerPlayers)
 
     return Everything

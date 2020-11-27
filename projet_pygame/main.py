@@ -17,15 +17,16 @@ def main():
     
     screen, map = gMap.load_map_to_screen('map_2.png')
 
-    Everything = gc.beginGame(screen)
+    Everything = gc.beginGame(screen, map)
 
     #gf.load_bg_sound('AITheme0.mp3')
 
     while True:
         gf.check_event(screen, Everything)
         
-        Everything.update()
+        
         screen.blit(map, (0,0))
+        Everything.update()
         Everything.draw(screen)
 
         pygame.display.flip()

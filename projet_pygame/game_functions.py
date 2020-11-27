@@ -1,10 +1,11 @@
 import pygame
 import os
 import sys
-import datetime
+import datetime, time
 import settings as st
 import json
 import game_objects as gobj
+import game_AI as AI
 from pygameMap import mapElement
 
 
@@ -24,9 +25,11 @@ def check_event(screen, Everything):
                         player.selected = 0
                         player.moved = 0
                         player.finished = 0
+                if pygame.key.key_code("a") == pygame.K_a:
+                    Game_AI = AI.GameAI(Everything, screen)
+                    Game_AI.do_AI_actions()
+                    #Game_AI = None     #如何自我销毁？
                 return
-        else:
-            do_AI_moving()
 
 
 
@@ -291,11 +294,6 @@ def load_image(name, colorKey=None):
         image.set_colorkey(colorKey, pygame.RLEACCEL)
 
     return image, image.get_rect()
-
-
-
-def do_AI_moving():
-    pass
 
 
 

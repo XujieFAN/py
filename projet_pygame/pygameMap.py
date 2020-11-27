@@ -140,7 +140,7 @@ if __name__ == "__main__":
     show_format()
     
     while True:
-        gf.check_event(screen)
+        gf.check_event(screen,Everything)
         screen.blit(map,(0,0))
         pygame.display.flip()
     '''

@@ -2,24 +2,38 @@ import pygame
 import game_functions as gf
 import settings as st
 import sys
+import time
 from pygame.sprite import Sprite
 from pygame.sprite import Group
 from pygame.sprite import LayeredUpdates
+import game_control as gc
+import pygameMap as gMap
 
 
 
 class Group_Everything(LayeredUpdates):
-    def __init__(self):
+    def __init__(self, map):
         LayeredUpdates.__init__(self)
         self.Group_Players = None
+        self.Group_HumainPlayers = None
+        self.Group_ComputerPlayers = None
         self.Group_Grids_move_area = None
         self.Group_Grids_attack_area = None
         self.someone_selected = False
         self.selected_one = None
         self.Group_for_infoPanel = None
+        self.AI_moving = 0
+        self.weightedMap = None
+        self.map = map
     
     def set_Group_Players(self, Group_Players):
         self.Group_Players = Group_Players
+
+    def set_Group_HumainPlayers(self, Group_HumainPlayers):
+        self.Group_HumainPlayers = Group_HumainPlayers
+
+    def set_Group_ComputerPlayers(self, Group_ComputerPlayers):
+        self.Group_ComputerPlayers = Group_ComputerPlayers
 
     def set_Group_Grids(self, Group_Grids, type):
         if type == 'move_area':
@@ -82,11 +96,28 @@ class Entity(Sprite):
             self.selected = 0
             self.Group_Everything.set_someone_selected(False)
             gf.unshow_area(self.Group_Everything)
-        
         self.selected = 0
 
     def changeExpAndLevel(self, targets):
         return self.exp_value, self.level
+
+    def showLifeValue(self):
+        pygame.draw.rect(self.image,(0,0,0),(4,0,42,6),1)
+        percentage_restLife = self.life_value/self.profil['life_value']
+        if percentage_restLife >= 0.7:
+            pygame.draw.rect(self.image,(255,255,255),(5,1,40,4))
+            pygame.draw.rect(self.image,(0,255,0),(5,1,40*percentage_restLife,4))
+        if percentage_restLife > 0.3 and percentage_restLife < 0.7:
+            pygame.draw.rect(self.image,(255,255,255),(5,1,40,4))
+            pygame.draw.rect(self.image,(200,200,0),(5,1,40*percentage_restLife,4))
+        if percentage_restLife <= 0.3:
+            pygame.draw.rect(self.image,(255,255,255),(5,1,40,4))
+            pygame.draw.rect(self.image,(255,0,0),(5,1,40*percentage_restLife,4))
+        
+
+    def update(self):
+        self.showLifeValue()
+
 
 
 
@@ -96,13 +127,20 @@ class EntityOfPlayer(Entity):
         self.attackable = 0
 
     def update(self):
-        pass
+        Entity.update(self)
 
     def attack(self,target):
         target.life_value = target.life_value - self.attack_value - self.damage_value
         print(target.life_value, target.life_value - self.attack_value - self.damage_value)
         self.exp_value, self.level = Entity.changeExpAndLevel(self,[target])
         Entity.attack(self,target)
+        if target.life_value <= 0:
+            target.playerDie()
+
+    def playerDie(self):
+        self.Group_Everything.Group_HumainPlayers.remove(self)
+        self.Group_Everything.Group_Players.remove(self)
+        self.Group_Everything.remove(self)
         
 
 
@@ -112,7 +150,24 @@ class EntityOfComputer(Entity):
         self.attackable = 1
 
     def update(self):
-        pass
+        Entity.update(self)
+
+    def move_one_step(self,pos):
+        self.set_pos(pos)
+        #self.moved = 1
+        time.sleep(0.2)
+
+    def attack(self,target):
+        target.life_value = target.life_value - self.attack_value - self.damage_value
+        print(target.life_value, target.life_value - self.attack_value - self.damage_value)
+        Entity.attack(self,target)
+        if target.life_value <= 0:
+            target.playerDie()
+
+    def playerDie(self):
+        self.Group_Everything.Group_ComputerPlayers.remove(self)
+        self.Group_Everything.Group_Players.remove(self)
+        self.Group_Everything.remove(self)
 
 
 
@@ -158,3 +213,29 @@ class InfoPanelUnit(Sprite):
 
     def update(self):
         pass
+
+
+if __name__ == "__main__":
+    pygame.init()
+
+    screen_setting = st.Settings()
+    screen = pygame.display.set_mode((screen_setting.screen_width, screen_setting.screen_height), pygame.RESIZABLE)
+    pygame.display.set_caption(screen_setting.caption)
+    
+    screen, map = gMap.load_map_to_screen('map_2.png')
+
+    Everything = gc.beginGame(screen, map)
+
+    #gf.load_bg_sound('AITheme0.mp3')
+
+    while True:
+        gf.check_event(screen, Everything)
+        
+        
+        screen.blit(map, (0,0))
+        Everything.update()
+        player = Everything.Group_HumainPlayers.sprites()[0]
+        player.showLifeValue()
+        screen.blit(player.image, (0,0))
+
+        pygame.display.flip()
