@@ -11,11 +11,6 @@ class GameAI:
     def __init__(self, Everything, screen):
         self.Everything = Everything
         self.screen = screen
-        map_width = screen.get_width() // st.Game_Attr.INTERVAL.value
-        map_heighth = screen.get_height() // st.Game_Attr.INTERVAL.value
-        weightedMap = numpy.ones((map_heighth,map_width))
-        self.weightedMap_NoChanged = weightedMap
-        self.weightedMap = weightedMap
 
 
     def do_AI_actions(self):
@@ -24,29 +19,17 @@ class GameAI:
             player.attackable = 1
         for NPC in self.Everything.Group_ComputerPlayers:
             NPC.finished = 0
-        self.refresh_WeightedMap()
+        self.Everything.refresh_WeightedMap()
 
         self.do_NPC_OneByOne()
         
         for player in self.Everything.Group_HumainPlayers:
             player.attackable = 0
+            player.selected = 0
+            player.moved = 0
+            player.finished = 0
         self.Everything.AI_moving = 0
         pygame.event.clear()
-
-
-    def refresh_WeightedMap(self):
-        self.weightedMap = self.weightedMap_NoChanged
-        for player in self.Everything.Group_Players:
-            rowNumber = player.pos[1] // st.Game_Attr.INTERVAL.value
-            colNumber = player.pos[0] // st.Game_Attr.INTERVAL.value
-            self.weightedMap[rowNumber][colNumber] = 500
-
-        '''
-        for mapElement in self.Everything.Group_MapElements:
-            rowNumber = mapElement.pos[1] // st.Game_Attr.INTERVAL.value
-            colNumber = mapElement.pos[0] // st.Game_Attr.INTERVAL.value
-            self.weightedMap[rowNumber][colNumber] = mapElement.weight
-        '''
 
     
     def getTarget(self):
@@ -71,13 +54,13 @@ class GameAI:
                 if self.check_reachTarget(NPC.pos, target):
                     NPC.attack(target)
                 else:
-                    aStar = rs.AStar(self.weightedMap, rs.Node(NPC.pos), targetPos)
-                    aStar.setWeight_atPos_onWeightedMap(targetPos,1)
-                    if aStar.start():
-                        stepNode = aStar.pathList.pop()
+                    roadSearch_AStar = rs.roadSearch_AStar(self.Everything.weightedMap, rs.Node(NPC.pos), targetPos)
+                    roadSearch_AStar.setWeight_atPos_onWeightedMap(targetPos,1)
+                    if roadSearch_AStar.searchRoad():
+                        stepNode = roadSearch_AStar.pathList.pop()
                         i = NPC.move_distance
-                        while i > 0 and len(aStar.pathList) > 0:
-                            stepNode = aStar.pathList.pop()
+                        while i > 0 and len(roadSearch_AStar.pathList) > 0:
+                            stepNode = roadSearch_AStar.pathList.pop()
                             if stepNode.pos != targetPos:
                                 NPC.move_one_step(stepNode.pos)
                                 i = i - 1
@@ -92,7 +75,7 @@ class GameAI:
                                 NPC.attack(target)
                         NPC.finished = 1
                     else:print('no road found!')
-            self.refresh_WeightedMap()
+            self.Everything.refresh_WeightedMap()
 
 
 

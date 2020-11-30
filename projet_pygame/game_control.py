@@ -4,6 +4,7 @@ import game_functions as gf
 import game_objects as gobj
 import settings as st
 from pygame.sprite import Group
+import game_AI as AI
 
 def newGame():
     pass
@@ -25,7 +26,8 @@ def beginGame(screen, map):
     else:
         newGame()
 
-    Everything = gobj.Group_Everything(map)
+    Everything = gobj.Everything(map)
+
     wizard = gobj.EntityOfPlayer(Everything, st.Profils.WIZARD, screen, (300, 300))
     knight = gobj.EntityOfPlayer(Everything, st.Profils.KNIGHT, screen, (300, 400))
     enemy_1 = gobj.EntityOfComputer(Everything, st.Profils.ENEMY_1, screen, (screen.get_width()-200,50))
@@ -41,5 +43,8 @@ def beginGame(screen, map):
     Everything.set_Group_Players(allPlayers)
     Everything.set_Group_HumainPlayers(allHumainPlayers)
     Everything.set_Group_ComputerPlayers(allComputerPlayers)
+
+    ai_beginning = AI.GameAI(Everything, screen)
+    Everything.refresh_WeightedMap()
 
     return Everything

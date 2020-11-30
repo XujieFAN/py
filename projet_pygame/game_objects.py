@@ -8,10 +8,12 @@ from pygame.sprite import Group
 from pygame.sprite import LayeredUpdates
 import game_control as gc
 import pygameMap as gMap
+import game_AI as AI
+import numpy
 
 
 
-class Group_Everything(LayeredUpdates):
+class Everything(LayeredUpdates):
     def __init__(self, map):
         LayeredUpdates.__init__(self)
         self.Group_Players = None
@@ -23,7 +25,10 @@ class Group_Everything(LayeredUpdates):
         self.selected_one = None
         self.Group_for_infoPanel = None
         self.AI_moving = 0
-        self.weightedMap = None
+        map_width = map.get_width() // st.Game_Attr.INTERVAL.value
+        map_heighth = map.get_height() // st.Game_Attr.INTERVAL.value
+        weightedMap = numpy.ones((map_heighth,map_width))
+        self.weightedMap = weightedMap
         self.map = map
     
     def set_Group_Players(self, Group_Players):
@@ -47,6 +52,23 @@ class Group_Everything(LayeredUpdates):
         self.someone_selected = boolean
         self.selected_one = selected_one
 
+    def refresh_WeightedMap(self):
+        map_width = self.map.get_width() // st.Game_Attr.INTERVAL.value
+        map_heighth = self.map.get_height() // st.Game_Attr.INTERVAL.value
+        self.weightedMap = numpy.ones((map_heighth,map_width))
+
+        for player in self.Group_Players:
+            rowNumber = player.pos[1] // st.Game_Attr.INTERVAL.value
+            colNumber = player.pos[0] // st.Game_Attr.INTERVAL.value
+            self.weightedMap[rowNumber][colNumber] = 500
+
+        '''
+        for mapElement in self.Group_MapElements:
+            rowNumber = mapElement.pos[1] // st.Game_Attr.INTERVAL.value
+            colNumber = mapElement.pos[0] // st.Game_Attr.INTERVAL.value
+            self.weightedMap[rowNumber][colNumber] = mapElement.weight
+        '''
+
 
 
 class Entity(Sprite):
@@ -65,8 +87,9 @@ class Entity(Sprite):
         self.selected = 0
         self.moved = 0
         self.finished = 0
-        self.Group_Everything = Everything
+        self.Everything = Everything
         self.attackable = 0
+        self.zoneMovable = None
         ###################################################
         self.attack_value = profil['attack_value']
         self.damage_value = profil['damage_value']
@@ -82,6 +105,7 @@ class Entity(Sprite):
     def set_pos(self,pos):
         self.pos = gf.changePosToTopLeft(pos)
         self.rect.topleft = self.pos
+        self.Everything.refresh_WeightedMap()
 
     def move(self,pos):
         self.set_pos(pos)
@@ -94,8 +118,8 @@ class Entity(Sprite):
             self.moved = 1
             self.finished = 1
             self.selected = 0
-            self.Group_Everything.set_someone_selected(False)
-            gf.unshow_area(self.Group_Everything)
+            self.Everything.set_someone_selected(False)
+            gf.unshow_area(self.Everything)
         self.selected = 0
 
     def changeExpAndLevel(self, targets):
@@ -130,17 +154,18 @@ class EntityOfPlayer(Entity):
         Entity.update(self)
 
     def attack(self,target):
-        target.life_value = target.life_value - self.attack_value - self.damage_value
-        print(target.life_value, target.life_value - self.attack_value - self.damage_value)
-        self.exp_value, self.level = Entity.changeExpAndLevel(self,[target])
-        Entity.attack(self,target)
-        if target.life_value <= 0:
-            target.playerDie()
+        if target.attackable == 1:
+            target.life_value = target.life_value - self.attack_value - self.damage_value
+            print(target.life_value, target.life_value - self.attack_value - self.damage_value)
+            self.exp_value, self.level = Entity.changeExpAndLevel(self,[target])
+            Entity.attack(self,target)
+            if target.life_value <= 0:
+                target.playerDie()
 
     def playerDie(self):
-        self.Group_Everything.Group_HumainPlayers.remove(self)
-        self.Group_Everything.Group_Players.remove(self)
-        self.Group_Everything.remove(self)
+        self.Everything.Group_HumainPlayers.remove(self)
+        self.Everything.Group_Players.remove(self)
+        self.Everything.remove(self)
         
 
 
@@ -165,21 +190,26 @@ class EntityOfComputer(Entity):
             target.playerDie()
 
     def playerDie(self):
-        self.Group_Everything.Group_ComputerPlayers.remove(self)
-        self.Group_Everything.Group_Players.remove(self)
-        self.Group_Everything.remove(self)
+        self.Everything.Group_ComputerPlayers.remove(self)
+        self.Everything.Group_Players.remove(self)
+        self.Everything.remove(self)
 
 
 
 class GridUnit(Sprite):
-    def __init__(self, screen, rgb=(255,255,255), pos=(0, 0)):
+    def __init__(self, screen, rgb=(255,255,255), pos=(0, 0), flag_fill=1):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((st.Game_Attr.INTERVAL.value, st.Game_Attr.INTERVAL.value),pygame.RLEACCEL)
-        self.image.set_alpha(20)
-        self.image.fill(rgb)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = pos
         self.rgb = rgb
+        self.rect = self.image.get_rect()
+        if flag_fill == 1:
+            self.image.fill(rgb)
+            self.image.set_alpha(30)    
+        else:
+            self.image.fill((255,255,255))
+            pygame.draw.rect(self.image,self.rgb,(1,1,48,48),1)
+            self.image.set_alpha(100)
+        self.rect.topleft = pos
         self.screen = screen
         self.offset = 0
 
@@ -195,7 +225,7 @@ class InfoPanelUnit(Sprite):
     def __init__(self, Everything, type, pos):
         pygame.sprite.Sprite.__init__(self)
         self.type = type
-        self.Group_Everything = Everything
+        self.Everything = Everything
         if type == 'bg_Panel':
             bg_infoPanel_image = pygame.Surface((100,pygame.display.get_surface().get_height())).convert()
             bg_infoPanel_image.fill((100,100,200))
@@ -216,26 +246,4 @@ class InfoPanelUnit(Sprite):
 
 
 if __name__ == "__main__":
-    pygame.init()
-
-    screen_setting = st.Settings()
-    screen = pygame.display.set_mode((screen_setting.screen_width, screen_setting.screen_height), pygame.RESIZABLE)
-    pygame.display.set_caption(screen_setting.caption)
-    
-    screen, map = gMap.load_map_to_screen('map_2.png')
-
-    Everything = gc.beginGame(screen, map)
-
-    #gf.load_bg_sound('AITheme0.mp3')
-
-    while True:
-        gf.check_event(screen, Everything)
-        
-        
-        screen.blit(map, (0,0))
-        Everything.update()
-        player = Everything.Group_HumainPlayers.sprites()[0]
-        player.showLifeValue()
-        screen.blit(player.image, (0,0))
-
-        pygame.display.flip()
+    pass

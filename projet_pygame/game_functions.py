@@ -7,6 +7,8 @@ import json
 import game_objects as gobj
 import game_AI as AI
 from pygameMap import mapElement
+import roadSearch as rs
+import numpy
 
 
 
@@ -20,76 +22,78 @@ def check_event(screen, Everything):
                 mouse_click(event.button, screen, Everything)
                 return
             if event.type == pygame.KEYUP:
-                if pygame.key.key_code("r") == pygame.K_r:
+                if event.key == pygame.K_r:
                     for player in Everything.Group_Players.sprites():
                         player.selected = 0
                         player.moved = 0
                         player.finished = 0
-                if pygame.key.key_code("a") == pygame.K_a:
+                if event.key == pygame.K_a:
                     Game_AI = AI.GameAI(Everything, screen)
                     Game_AI.do_AI_actions()
                     #Game_AI = None     #如何自我销毁？
+                if event.key == pygame.K_t:
+                    pass
                 return
 
 
 
-def mouse_click(button, screen, Group_Everything):
+def mouse_click(button, screen, Everything):
     pos = pygame.mouse.get_pos()
 
     #click left
     if button == 1:
-        if Group_Everything.someone_selected == False:
-            for player in Group_Everything.Group_Players.sprites():
+        if Everything.someone_selected == False:
+            for player in Everything.Group_HumainPlayers.sprites():
                 #   juste show area
                 if player.rect.collidepoint(pos) and player.finished == 0:
-                    show_area(Group_Everything, player, screen)
+                    show_area(Everything, player, screen)
                     player.selected = 1
-                    Group_Everything.set_someone_selected(True, player)
+                    Everything.set_someone_selected(True, player)
                     return
 
-        if Group_Everything.someone_selected == True:
-            player = Group_Everything.selected_one
+        if Everything.someone_selected == True:
+            player = Everything.selected_one
             #   move !
             if player.moved == 0 and not player.rect.collidepoint(pos) and is_inArea(player, pos, player.move_distance) and not is_inArea(player, pos, player.attack_distance):
-                obj_detected, obj_type = detectObj(Group_Everything, pos)
+                obj_detected, obj_type = detectObj(Everything, pos)
                 if obj_type == 0:   #nothing collided
                     player.move(pos)
-                    show_area(Group_Everything, player, screen)
-                if obj_type == 1:    #detect a player
-                    changeFocusedPlayer(Group_Everything, player, obj_detected)
-                    show_area(Group_Everything, obj_detected, screen)
+                    show_area(Everything, player, screen)
+                if obj_type == 1 and obj_detected in Everything.Group_HumainPlayers:    #detect a player
+                    changeFocusedPlayer(Everything, player, obj_detected)
+                    show_area(Everything, obj_detected, screen)
                 return
 
             #   attack or move
             if not player.rect.collidepoint(pos) and is_inArea(player, pos, player.attack_distance) and is_inArea(player, pos, player.move_distance):
-                obj_detected, obj_type = detectObj(Group_Everything, pos)
+                obj_detected, obj_type = detectObj(Everything, pos)
                 if obj_type == 1:   #attack !
                     player.attack(obj_detected)
                 if obj_type == 0 and player.moved == 0:   #move
                     player.move(pos)
-                    show_area(Group_Everything, player, screen)
+                    show_area(Everything, player, screen)
                 return
             
             #   juste unshow
             if not player.rect.collidepoint(pos) and not is_inArea(player, pos, player.attack_distance):
                 player.selected = 0
-                Group_Everything.set_someone_selected(False)
-                unshow_area(Group_Everything)
+                Everything.set_someone_selected(False)
+                unshow_area(Everything)
                 return
 
     #click right
     if button == 3:
-        show_info(screen, Group_Everything, pos)
+        show_info(screen, Everything, pos)
         return
     
     return
 
 
 
-def changeFocusedPlayer(Group_Everything, thisPlayer, anotherPlayer):
-    Group_Everything.set_someone_selected(False)
+def changeFocusedPlayer(Everything, thisPlayer, anotherPlayer):
+    Everything.set_someone_selected(False)
     thisPlayer.selected = 0
-    Group_Everything.set_someone_selected(True, anotherPlayer)
+    Everything.set_someone_selected(True, anotherPlayer)
     anotherPlayer.selected = 1
     return
 
@@ -100,20 +104,20 @@ detecteObj return 1 if detect a player
 detecteObj return 2 if detect a map object
 detecteObj return 3 if detect any other object
 '''
-def detectObj(Group_Everything, pos):
-    if Group_Everything.Group_Players is not None:
-        for another_player in Group_Everything.Group_Players.sprites():
+def detectObj(Everything, pos):
+    if Everything.Group_Players is not None:
+        for another_player in Everything.Group_Players.sprites():
             if another_player.rect.collidepoint(pos):
                 return another_player, 1
 
     '''
-    if Group_Everything.Group_map_objs is not None:
-        for map_obj in Group_Everything.Group_map_objs.sprites():
+    if Everything.Group_map_objs is not None:
+        for map_obj in Everything.Group_map_objs.sprites():
             if map_obj.rect.collidepoint(pos):
                 return map_obj, 2
     '''
-    if Group_Everything.Group_for_infoPanel is not None:
-        for SomeObj in Group_Everything.Group_for_infoPanel.sprites():
+    if Everything.Group_for_infoPanel is not None:
+        for SomeObj in Everything.Group_for_infoPanel.sprites():
             if SomeObj.rect.collidepoint(pos):
                 return SomeObj, 3
 
@@ -121,17 +125,21 @@ def detectObj(Group_Everything, pos):
 
 
 
-def show_info(screen, Group_Everything, pos):
+def show_info(screen, Everything, pos):
     
     print('-'*15+datetime.datetime.now().strftime('%Y-%m-%d  %H:%M:%S')+'-'*15)
-    for obj in Group_Everything.sprites():
+    for obj in Everything.sprites():
         print('|  ', obj, 'at ', obj.rect.topleft)
     print('-'*50)
     print('\n')
 
-    unshow_area(Group_Everything)
+    unshow_area(Everything)
 
-    for player in Group_Everything.Group_Players.sprites():
+    rowNumber = pos[1] // st.Game_Attr.INTERVAL.value
+    colNumber = pos[0] // st.Game_Attr.INTERVAL.value
+    print(Everything.weightedMap[rowNumber][colNumber])
+
+    for player in Everything.Group_Players.sprites():
         if player.rect.collidepoint(pos):
             print('-'*50)
             print('|  player profil   : %s' %player.profil['name'])
@@ -144,15 +152,15 @@ def show_info(screen, Group_Everything, pos):
             
             Group_for_infoPanel = pygame.sprite.Group()
 
-            bg_infoPanel = gobj.InfoPanelUnit(Group_Everything,'bg_Panel', (0,0))
+            bg_infoPanel = gobj.InfoPanelUnit(Everything,'bg_Panel', (0,0))
             Group_for_infoPanel.add(bg_infoPanel)
-            Group_Everything.add(bg_infoPanel,layer=10)
+            Everything.add(bg_infoPanel,layer=10)
 
-            test_button = gobj.InfoPanelUnit(Group_Everything,'test', (25,25))
+            test_button = gobj.InfoPanelUnit(Everything,'test', (25,25))
             Group_for_infoPanel.add(test_button)
-            Group_Everything.add(test_button,layer=11)
+            Everything.add(test_button,layer=11)
 
-            Group_Everything.Group_for_infoPanel = Group_for_infoPanel
+            Everything.Group_for_infoPanel = Group_for_infoPanel
 
 
 
@@ -164,31 +172,52 @@ def show_area(Everything, player, screen):
 
 
 
+def getNodesInZone_forPos(Everything, pos, zone_scale, border):
+    list_pos, nb_pos = calculate_area_from_distance(pos, zone_scale + border)
+    list_nodes_InZone = []
+    for node in list_pos:
+        roadSearch_AStar = rs.roadSearch_AStar(Everything.weightedMap, rs.Node(pos), node)
+        if roadSearch_AStar.searchRoad():
+            if border == 0:   #All nodes in zone
+                if len(roadSearch_AStar.pathList) <= zone_scale + 1:
+                    list_nodes_InZone.append([node,roadSearch_AStar.pathList])
+            else:   #only nodes in border
+                if len(roadSearch_AStar.pathList) > zone_scale + 1 and len(roadSearch_AStar.pathList) <= zone_scale + border + 1:
+                    list_nodes_InZone.append([node,roadSearch_AStar.pathList])
+    return list_nodes_InZone
+
+
+
 def show_move_area(Everything, player, screen):
     if player.moved == 0:
-        list_pos_m, nb_total_grid_m = calculate_area_from_distance(player.pos, player.move_distance)
+        list = getNodesInZone_forPos(Everything, player.pos, player.move_distance, 0)
+        arrayList = numpy.array(list)
+        player.zoneMovable = arrayList
         Group_grid_move_area = pygame.sprite.RenderPlain()
-        for i in range(nb_total_grid_m):
-            grid = gobj.GridUnit(screen,(0,255,0),list_pos_m[i])
+        for node in arrayList[:,0]:
+            grid = gobj.GridUnit(screen,(0,255,0),node)
             Group_grid_move_area.add(grid)
             Everything.add(grid)
-            Everything.set_Group_Grids(Group_grid_move_area,'move_area')
+        Everything.set_Group_Grids(Group_grid_move_area,'move_area')
         pygame.sprite.groupcollide(Everything.Group_Grids_move_area, Everything.Group_Players, True, False)
         
 
 
 def show_attack_area(Everything, player, screen):
     if player.moved == 0:
-        list_pos_a, nb_total_grid_a = calculate_area_from_distance(player.pos, player.move_distance+player.attack_distance)
+        list = getNodesInZone_forPos(Everything, player.pos, player.move_distance, player.attack_distance)
+        arrayList = numpy.array(list)
     else:
-        list_pos_a, nb_total_grid_a = calculate_area_from_distance(player.pos, player.attack_distance)
+        list = getNodesInZone_forPos(Everything, player.pos, player.attack_distance, 0)
+        arrayList = numpy.array(list)
 
     Group_grid_attack_area = pygame.sprite.RenderPlain()
-    for i in range(nb_total_grid_a):
-        grid = gobj.GridUnit(screen,(255,0,0),list_pos_a[i])
+    for node in arrayList[:,0]:
+        grid = gobj.GridUnit(screen,(255,0,0),node,0)
         Group_grid_attack_area.add(grid)
         Everything.add(grid)
-        Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
+
+    Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
 
 
 

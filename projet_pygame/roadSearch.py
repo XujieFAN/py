@@ -1,6 +1,7 @@
 import game_AI as AI
 import settings as st
 import numpy
+import game_functions as gf
 
 
 
@@ -28,11 +29,13 @@ class Node:
 
 
 
-class AStar:
+class roadSearch_AStar:
     def __init__(self, weightedMap, startNode, endNodePos):
         self.openList = []
         self.closeList = []
         self.pathList = []
+        self.zone_movable = []
+        self.zone_attackable = []
         self.startNode = startNode
         self.endNodePos = endNodePos
         self.currentNode = startNode
@@ -136,13 +139,12 @@ class AStar:
                 self.searchOneNode(Node(leftNodePos))
 
 
-    def start(self):
+    def searchRoad(self):
         self.startNode.manhattan(self.endNodePos)
         self.startNode.setG(0)
         self.openList.append(self.startNode)
 
         while True:
-            print(self.currentNode.pos)
             self.currentNode = self.getMinFNode()
             self.closeList.append(self.currentNode)
             self.openList.remove(self.currentNode)
@@ -177,9 +179,9 @@ if __name__ == '__main__':
     WeightedMap[5][7] = 30
     print(WeightedMap)    
     
-    aStar = AStar(WeightedMap, Node((300,50)), (250,150))
-    if aStar.start():
-        for Node in aStar.pathList:
+    roadSearch_AStar = roadSearch_AStar(WeightedMap, Node((300,50)), (250,150))
+    if roadSearch_AStar.searchRoad():
+        for Node in roadSearch_AStar.pathList:
             print(Node.pos)
     else:
         print("no way")

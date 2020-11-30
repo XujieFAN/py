@@ -27,6 +27,7 @@ def main():
         
         screen.blit(map, (0,0))
         Everything.update()
+        Everything.refresh_WeightedMap()
         Everything.draw(screen)
 
         pygame.display.flip()
