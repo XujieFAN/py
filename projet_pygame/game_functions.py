@@ -57,7 +57,7 @@ def mouse_click(button, screen, Everything):
             if player.moved == 0 and not player.rect.collidepoint(pos) and is_inArea(player, pos, player.move_distance) and not is_inArea(player, pos, player.attack_distance):
                 obj_detected, obj_type = detectObj(Everything, pos)
                 if obj_type == 0:   #nothing collided
-                    player.move(pos)
+                    player.smooth_move(pos)
                     show_area(Everything, player, screen)
                 if obj_type == 1 and obj_detected in Everything.Group_HumainPlayers:    #detect a player
                     changeFocusedPlayer(Everything, player, obj_detected)
@@ -65,14 +65,24 @@ def mouse_click(button, screen, Everything):
                 return
 
             #   attack or move
+            if not player.rect.collidepoint(pos) and is_inArea(player, pos, player.attack_distance):
+                obj_detected, obj_type = detectObj(Everything, pos)
+                if obj_type == 1:   #attack !
+                    player.smooth_attack(obj_detected)
+                if obj_type == 0 and player.moved == 0 and is_inArea(player, pos, player.move_distance):   #move
+                    player.smooth_move(pos)
+                    show_area(Everything, player, screen)
+                return
+            '''
             if not player.rect.collidepoint(pos) and is_inArea(player, pos, player.attack_distance) and is_inArea(player, pos, player.move_distance):
                 obj_detected, obj_type = detectObj(Everything, pos)
                 if obj_type == 1:   #attack !
-                    player.attack(obj_detected)
+                    player.smooth_attack(obj_detected)
                 if obj_type == 0 and player.moved == 0:   #move
-                    player.move(pos)
+                    player.smooth_move(pos)
                     show_area(Everything, player, screen)
                 return
+            '''
             
             #   juste unshow
             if not player.rect.collidepoint(pos) and not is_inArea(player, pos, player.attack_distance):
@@ -203,20 +213,71 @@ def show_move_area(Everything, player, screen):
         
 
 
+def Is_enemyNearby(Everything, pos):
+    pos_up = (pos[0], pos[1]-st.Game_Attr.INTERVAL.value)
+    pos_down = (pos[0], pos[1]+st.Game_Attr.INTERVAL.value)
+    pos_left = (pos[0]-st.Game_Attr.INTERVAL.value, pos[1])
+    pos_right = (pos[0]+st.Game_Attr.INTERVAL.value, pos[1])
+    for player in Everything.Group_Players.sprites():
+        if player.attackable==1 and (player.rect.collidepoint(pos_up) or player.rect.collidepoint(pos_down) or player.rect.collidepoint(pos_left) or player.rect.collidepoint(pos_right)):
+            return True
+    return False
+
+
+
+def get_listPosAttackable_atPos(Everything, pos, distance, flags=None):
+    list_pos_a, nb_total_grid_a = calculate_area_from_distance(pos, distance)
+    if flags is not None:
+        if flags['nearby_on'] == 1:
+            if Is_enemyNearby(Everything, pos):
+                list_pos_a, nb_total_grid_a = calculate_area_from_distance(pos, 1)
+    return list_pos_a
+
+
+
 def show_attack_area(Everything, player, screen):
+    '''version1 : 攻击范围大时处理得很慢，没有必要
     if player.moved == 0:
         list = getNodesInZone_forPos(Everything, player.pos, player.move_distance, player.attack_distance)
         arrayList = numpy.array(list)
     else:
         list = getNodesInZone_forPos(Everything, player.pos, player.attack_distance, 0)
         arrayList = numpy.array(list)
-
     Group_grid_attack_area = pygame.sprite.RenderPlain()
     for node in arrayList[:,0]:
         grid = gobj.GridUnit(screen,(255,0,0),node,0)
         Group_grid_attack_area.add(grid)
         Everything.add(grid)
-
+    Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
+    '''
+    '''version2 : 无法根据战场情况判断攻击范围
+    if player.moved == 0:
+        list_pos_a, nb_total_grid_a = calculate_area_from_distance(player.pos, player.move_distance+player.attack_distance)
+    else:
+        list_pos_a, nb_total_grid_a = calculate_area_from_distance(player.pos, player.attack_distance)
+    Group_grid_attack_area = pygame.sprite.RenderPlain()
+    for i in range(nb_total_grid_a):
+        grid = gobj.GridUnit(screen,(255,0,0),list_pos_a[i],0)
+        Group_grid_attack_area.add(grid)
+        Everything.add(grid)
+    Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
+    '''
+    #version3 : 分别判断每一个可走到的点，再汇总
+    AllAreaAttackable = set()
+    if player.moved == 0: #and not Is_enemyNearby(Everything, player.pos):
+        list = getNodesInZone_forPos(Everything, player.pos, player.move_distance, 0)
+        arrayList = numpy.array(list)
+        for node in arrayList[:,0]:
+            areaAttackable = get_listPosAttackable_atPos(Everything, node, player.attack_distance, flags={'nearby_on':1})
+            for pos in areaAttackable:
+                AllAreaAttackable.add(pos)
+    else:
+        AllAreaAttackable = get_listPosAttackable_atPos(Everything, player.pos, player.attack_distance, flags={'nearby_on':1})
+    Group_grid_attack_area = pygame.sprite.RenderPlain()
+    for node in AllAreaAttackable:
+        grid = gobj.GridUnit(screen,(255,0,0),node,0)
+        Group_grid_attack_area.add(grid)
+        Everything.add(grid)
     Everything.set_Group_Grids(Group_grid_attack_area,'attack_area')
 
 

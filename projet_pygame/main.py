@@ -8,7 +8,7 @@ import game_control as gc
 import pygameMap as gMap
 
 
-def main():
+def play():
     pygame.init()
 
     screen_setting = st.Settings()
@@ -22,8 +22,7 @@ def main():
     #gf.load_bg_sound('AITheme0.mp3')
 
     while True:
-        gf.check_event(screen, Everything)
-        
+        gf.check_event(screen, Everything)        
         
         screen.blit(map, (0,0))
         Everything.update()
@@ -34,4 +33,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    play()

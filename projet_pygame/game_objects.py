@@ -10,6 +10,7 @@ import game_control as gc
 import pygameMap as gMap
 import game_AI as AI
 import numpy
+import animations as AM
 
 
 
@@ -113,6 +114,7 @@ class Entity(Sprite):
         return
 
     def attack(self,target):
+        print('Entity.attack')
         if target.attackable == 1:
             print('%s attack %s at the postion : (%d, %d)' %(self.profil['name'], target.profil['name'], target.pos[0],target.pos[1]))
             self.moved = 1
@@ -133,11 +135,15 @@ class Entity(Sprite):
             pygame.draw.rect(self.image,(0,255,0),(5,1,40*percentage_restLife,4))
         if percentage_restLife > 0.3 and percentage_restLife < 0.7:
             pygame.draw.rect(self.image,(255,255,255),(5,1,40,4))
-            pygame.draw.rect(self.image,(200,200,0),(5,1,40*percentage_restLife,4))
+            pygame.draw.rect(self.image,(205,205,0),(5,1,40*percentage_restLife,4))
         if percentage_restLife <= 0.3:
             pygame.draw.rect(self.image,(255,255,255),(5,1,40,4))
             pygame.draw.rect(self.image,(255,0,0),(5,1,40*percentage_restLife,4))
         
+    def refresh_image(self):
+        self.screen.blit(self.Everything.map, (0,0))
+        self.Everything.Group_Players.draw(self.screen)
+        pygame.display.flip()
 
     def update(self):
         self.showLifeValue()
@@ -153,10 +159,46 @@ class EntityOfPlayer(Entity):
     def update(self):
         Entity.update(self)
 
-    def attack(self,target):
+    def smooth_move(self,pos):
+        index = list(self.zoneMovable[:,0]).index(gf.changePosToTopLeft(pos))
+        path = list(self.zoneMovable[index,1])
+        path.pop()
+        path.reverse()
+        #增加一个行走方向的判断，以此决定加载那个图片
+        am_move = AM.Animation(self,'move')
+        images_am_move = am_move.images_move
+        nb_frames = am_move.nb_frames
+        for step in path:
+            current_pos = self.pos
+            for i in range(nb_frames):
+                next_tmp_pos_x = current_pos[0] + (((step.pos[0] - current_pos[0]) // nb_frames) * (i+1))
+                next_tmp_pos_y = current_pos[1] + (((step.pos[1] - current_pos[1]) // nb_frames) * (i+1))
+                self.rect.topleft = (next_tmp_pos_x,next_tmp_pos_y)
+                self.image = images_am_move[i]
+                self.pos = (next_tmp_pos_x,next_tmp_pos_y)
+                self.refresh_image()
+                time.sleep(0.1)
+                current_pos = self.pos
+        self.pos = gf.changePosToTopLeft(self.rect.center)
+        self.rect.topleft = self.pos
+        self.moved = 1
+        self.Everything.refresh_WeightedMap()
+        return
+
+    def smooth_attack(self,target):
+        print('EntityOfPlayer.smooth_attack')
         if target.attackable == 1:
+            #增加一个攻击方向的判断，以此决定加载那个图片
+            am_attack = AM.Animation(self,'attack')
+            images_am_attack = am_attack.images_attack
+            nb_frames = am_attack.nb_frames
+            for i in range(nb_frames):
+                self.image = images_am_attack[i]
+                self.refresh_image()
+                time.sleep(0.2)
+            self.image, self.rect = gf.load_image(self.profil['image_name'])
+            self.rect.topleft = self.pos
             target.life_value = target.life_value - self.attack_value - self.damage_value
-            print(target.life_value, target.life_value - self.attack_value - self.damage_value)
             self.exp_value, self.level = Entity.changeExpAndLevel(self,[target])
             Entity.attack(self,target)
             if target.life_value <= 0:
@@ -166,7 +208,25 @@ class EntityOfPlayer(Entity):
         self.Everything.Group_HumainPlayers.remove(self)
         self.Everything.Group_Players.remove(self)
         self.Everything.remove(self)
-        
+
+
+
+class WIZARD(EntityOfPlayer):
+    def __init__(self, Everything, profil, screen, pos=(0, 0)):
+        EntityOfPlayer.__init__(self, Everything, profil, screen, pos)
+
+    def smooth_attack(self,target):
+        print('WIZARD.smooth_attack')
+        EntityOfPlayer.smooth_attack(self,target)
+        fire = FireObject('wizard_fire1.png',self.Everything,self.screen,self.rect.center)
+        fire.moveAtoB(self.rect.center,target.rect.center,3)
+
+
+
+class KNIGHT(EntityOfPlayer):
+    def __init__(self, Everything, profil, screen, pos=(0, 0)):
+        EntityOfPlayer.__init__(self, Everything, profil, screen, pos)
+
 
 
 class EntityOfComputer(Entity):
@@ -193,6 +253,35 @@ class EntityOfComputer(Entity):
         self.Everything.Group_ComputerPlayers.remove(self)
         self.Everything.Group_Players.remove(self)
         self.Everything.remove(self)
+
+
+
+class FireObject(Sprite):
+    def __init__(self, imageName, Everything, screen, pos=(0, 0)):
+        pygame.sprite.Sprite.__init__(self)
+        self.image, self.rect = gf.load_image(imageName)
+        self.Everything = Everything
+        self.screen = screen
+        self.pos = pos
+
+    def moveAtoB(self, posA, posB, nb_frames_per_Grid):
+        offset_x = abs(posA[0]-posB[0])
+        offset_y = abs(posA[1]-posB[1])
+        print(offset_x,offset_y)
+        nb_frames = int((numpy.sqrt(numpy.square(offset_x) + numpy.square(offset_y))//st.Game_Attr.INTERVAL.value) * nb_frames_per_Grid)
+        print('nb_frames',nb_frames)
+        current_pos = posA
+        print(current_pos)
+        for i in range(nb_frames):
+            next_tmp_pos_x = current_pos[0] + (((posB[0] - current_pos[0]) // nb_frames) * (i+1))
+            next_tmp_pos_y = current_pos[1] + (((posB[1] - current_pos[1]) // nb_frames) * (i+1))
+            print(next_tmp_pos_x, next_tmp_pos_y)
+            self.screen.blit(self.image, (next_tmp_pos_x, next_tmp_pos_y))
+            pygame.display.flip()
+            time.sleep(0.05)
+            current_pos = (next_tmp_pos_x, next_tmp_pos_y)
+            self.screen.blit(self.Everything.map, current_pos, [next_tmp_pos_x, next_tmp_pos_y, 25, 13])
+            self.Everything.draw(self.screen)
 
 
 

@@ -28,8 +28,8 @@ def beginGame(screen, map):
 
     Everything = gobj.Everything(map)
 
-    wizard = gobj.EntityOfPlayer(Everything, st.Profils.WIZARD, screen, (300, 300))
-    knight = gobj.EntityOfPlayer(Everything, st.Profils.KNIGHT, screen, (300, 400))
+    wizard = gobj.WIZARD(Everything, st.Profils.WIZARD, screen, (500, 250))
+    knight = gobj.KNIGHT(Everything, st.Profils.KNIGHT, screen, (500, 200))
     enemy_1 = gobj.EntityOfComputer(Everything, st.Profils.ENEMY_1, screen, (screen.get_width()-200,50))
     enemy_2 = gobj.EntityOfComputer(Everything, st.Profils.ENEMY_2, screen, (screen.get_width()-200,100))
     Everything.add(wizard)
